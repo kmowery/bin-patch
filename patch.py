@@ -31,7 +31,7 @@ file_size = source.tell()
 
 if file_size < patch_base + patch_size:
   print "Base + Patch size is larger than Source file. Aborting."
-  sys.exit(1)
+  ss.exit(1)
 
 patch.seek(0)
 source.seek(0)
@@ -49,10 +49,12 @@ buf = source.read(patch_base-written)
 output.write(buf)
 written += len(buf)
 
+print "source location: %d"%(source.tell())
 while patch_size > 0:
   buf = patch.read(min(patch_size, blocksize))
   output.write(buf)
-  source.seek(len(buf))
+  source.seek(len(buf), 1)
+  print "patching %d characters: %d"%( len(buf), source.tell())
   written += len(buf)
   patch_size -= len(buf)
 
