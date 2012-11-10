@@ -24,7 +24,7 @@ patch = open(args['patch'], 'r')
 output = open(args['output'], 'w+')
 
 patch.seek(0,2)
-patch_size = patch.tell()-1
+patch_size = patch.tell()
 
 source.seek(0,2)
 file_size = source.tell()
