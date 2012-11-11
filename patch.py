@@ -49,7 +49,7 @@ buf = source.read(patch_base-written)
 output.write(buf)
 written += len(buf)
 
-print "source location: %d"%(source.tell())
+print "Patching at: 0x%x"%(source.tell())
 while patch_size > 0:
   buf = patch.read(min(patch_size, blocksize))
   output.write(buf)
