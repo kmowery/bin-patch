@@ -5,6 +5,7 @@ import itertools
 import math
 import sys
 import re
+from file_wrapper import FileWrapper, HexByteWrapper
 
 parser = argparse.ArgumentParser(description="Make some plots.")
 parser.add_argument('source')
@@ -17,79 +18,59 @@ group.add_argument('-x', '--hexpatch', default=argparse.SUPPRESS,
     help="Patch content in hex", metavar="HEX_NUMBER")
 parser.add_argument('-o', '--output', required=True,
   help="Output location", metavar="filename")
+parser.add_argument('-k', '--block', default=None, type=int,
+    help="Copy original file and patch in blocks of N kilobytes (if not given,will load entire files into memory. Note that if this option is given, the output file must not be any input file.")
 
 args = vars(parser.parse_args())
 
 patch_base = eval(args['base'])
 
-blocksize = 1024
 
-source = open(args['source'], 'r')
+source = FileWrapper( args['source'], 'r', blocksize=args['block'] )
+patch = FileWrapper( args['patch'], 'r', blocksize=args['block'] ) \
+    if 'patch' in args else \
+    HexByteWrapper( args['hexpatch'] )
 
-if 'patch' in args:
-  patch = open(args['patch'], 'r')
-  patch.seek(0,2)
-  patch_size = patch.tell()
-elif 'hexpatch' in args:
-  hexpatch = args['hexpatch']
-  if len(hexpatch) % 2 != 0:
-    print "Hexidecimal patch must be an integer number of bytes. Aborting."
-    sys.exit(1)
-  patch_size = len(hexpatch)/2
-else:
-  print "Unknown patch type. Shouldn't get here!"
-
-source.seek(0,2)
-file_size = source.tell()
-
-if file_size < patch_base + patch_size:
+if len(source) < patch_base + len(patch):
   print "Base + Patch size is larger than Source file. Aborting."
   sys.exit(1)
 
+# If the user did not specify a block size, the files have been slurped in and
+# closed. Open output as normal.
 output = open(args['output'], 'w+')
-if 'patch' in args:
-  patch.seek(0)
-source.seek(0)
 
-written = 0
+# These two patch styles are different enough to warrant not using abstraction
+if args['block'] is None:
+  file_data = source.data()
+  file_data[patch_base : patch_base + len(patch)] = patch.data()
+  output.write("".join(file_data))
+else:
+  blocksize = args['block']
+  written = 0
+  for i in range(patch_base / blocksize):
+    buf = source.read(blocksize)
+    if len(buf) != blocksize:
+      print "something horrible has happened"
+    output.write("".join(buf))
+    written += len(buf)
 
-for i in range(patch_base / blocksize):
-  buf = source.read(blocksize)
-  if len(buf) != blocksize:
-    print "something horrible has happened"
-  output.write(buf)
+  buf = source.read(patch_base-written)
+  output.write("".join(buf))
   written += len(buf)
 
-buf = source.read(patch_base-written)
-output.write(buf)
-written += len(buf)
-
-print "Patching at: 0x%x"%(source.tell())
-while patch_size > 0:
-  if 'patch' in args:
+  print "Patching at: 0x%x"%(source.tell())
+  patch_size = len(patch)
+  while patch_size > 0:
     buf = patch.read(min(patch_size, blocksize))
-    output.write(buf)
+    output.write("".join(buf))
     source.seek(len(buf), 1)
-    print "patching %d characters: %d"%( len(buf), source.tell())
     written += len(buf)
     patch_size -= len(buf)
-  elif 'hexpatch' in args:
-    buf = hexpatch[:blocksize*2]
-    hexpatch = hexpatch[len(buf):]
-    patch_size = len(hexpatch)/2
 
-    bytes = [chr(int(a+b, 16)) for a,b in
-        itertools.izip(itertools.islice(buf, 0, None, 2),
-                       itertools.islice(buf, 1, None, 2))]
-    output.write("".join(bytes))
-
-  else:
-    print "Unknown patch type. Shouldn't get here!"
-
-while True:
-  buf = source.read(blocksize)
-  if len(buf) == 0:
-    break
-  output.write(buf)
-  written += len(buf)
+  while True:
+    buf = source.read(blocksize)
+    if len(buf) == 0:
+      break
+    output.write("".join(buf))
+    written += len(buf)
 
