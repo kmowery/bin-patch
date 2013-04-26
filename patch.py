@@ -10,7 +10,7 @@ from file_wrapper import FileWrapper, HexByteWrapper
 parser = argparse.ArgumentParser(description="Make some plots.")
 parser.add_argument('source')
 parser.add_argument('-b', '--base', default='0',
-    help="Location to start patch", metavar="addr")
+    help="Location (in hex) to start patch", metavar="addr")
 group = parser.add_mutually_exclusive_group(required=True)
 group.add_argument('-p', '--patch', default=argparse.SUPPRESS,
   help="Patch file", metavar="filename")
@@ -23,7 +23,7 @@ parser.add_argument('-k', '--block', default=None, type=int,
 
 args = vars(parser.parse_args())
 
-patch_base = eval(args['base'])
+patch_base = int(args['base'], 16)
 
 
 source = FileWrapper( args['source'], 'r', blocksize=args['block'] )
