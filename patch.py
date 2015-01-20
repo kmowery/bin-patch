@@ -7,7 +7,7 @@ import sys
 import re
 from file_wrapper import FileWrapper, HexByteWrapper
 
-parser = argparse.ArgumentParser(description="Make some plots.")
+parser = argparse.ArgumentParser(description="Apply a patch to a file")
 parser.add_argument('source')
 parser.add_argument('-b', '--base', default='0',
     help="Location (in hex) to start patch", metavar="addr")
@@ -19,7 +19,7 @@ group.add_argument('-x', '--hexpatch', default=argparse.SUPPRESS,
 parser.add_argument('-o', '--output', required=True,
   help="Output location", metavar="filename")
 parser.add_argument('-k', '--block', default=None, type=int,
-    help="Copy original file and patch in blocks of N kilobytes (if not given,will load entire files into memory. Note that if this option is given, the output file must not be any input file.")
+    help="Process files in blocks of N kilobytes (useful if patching extremely large files). If this option is used, ensure that the output file will not overwrite any of the input files.")
 
 args = vars(parser.parse_args())
 
